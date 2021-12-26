@@ -274,7 +274,6 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
     ::CoInitialize(NULL);
 
     // Initialize some Vulkan stuff
-    // Do this BEFORE calling CreateVulkanWindow()
     int iDesiredMSAA = 4;   // 0 = off, -1 = best available, [2|4|8|16] = specified
     if (!gpApplication->GetVulkan()->Init( (uintptr_t)hWnd,
                                            (uintptr_t)hInstance,

@@ -5,10 +5,10 @@
 #include "assetManager.hpp"
 #include <sys/stat.h>
 
-#if defined (OS_ANDROID)
+#if !defined (OS_WINDOWS)
 #include <unistd.h>
 #include <sys/time.h>
-#endif // defined (OS_ANDROID)
+#endif // !defined (OS_WINDOWS)
 
 #if defined (OS_WINDOWS)
 #define NOMINMAX
@@ -48,7 +48,7 @@ uint32_t OS_GetNumCores()
 
     return SysInfo.dwNumberOfProcessors;
 
-#elif defined(OS_ANDROID)
+#else
 
     // sysconf can return a negative number!
     int iNumCores = sysconf( _SC_NPROCESSORS_ONLN );  // Number of processors online
@@ -56,10 +56,6 @@ uint32_t OS_GetNumCores()
         return 0;
     else
         return (uint32_t) iNumCores;
-
-#else
-
-#error Must define an OS!
 
 #endif  // defined(OS_XXX)
 }
@@ -80,7 +76,7 @@ uint32_t OS_GetTimeMS()
 
     return (uint32_t)(((double)nTime.QuadPart / (double)nFrequency.QuadPart) * 1000.0f);
 
-#elif defined (OS_ANDROID)
+#else
 
     struct timeval t;
     t.tv_sec = t.tv_usec = 0;
@@ -92,7 +88,7 @@ uint32_t OS_GetTimeMS()
 
     return (uint32_t)(t.tv_sec * 1000LL + t.tv_usec / 1000LL);
 
-#endif // defined (OS_WINDOWS|OS_ANDROID)
+#endif // defined (OS_WINDOWS)
 }
 
 
@@ -120,6 +116,16 @@ static void LOG_(WORD ConsoleColor, const char* pszFormat, va_list args)
 }
 #endif // defined (OS_WINDOWS)
 
+#if defined (OS_OSX)
+//-----------------------------------------------------------------------------
+static void LOG_(const char* pszFormat, va_list args)
+//-----------------------------------------------------------------------------
+{
+    vfprintf(stdout, pszFormat, args);
+    fprintf(stdout, "\n");
+}
+#endif
+
 #if defined (OS_WINDOWS)
 //-----------------------------------------------------------------------------
 void LOGE(const char* pszFormat, ...)
@@ -137,7 +143,7 @@ void LOGE(const char* pszFormat, ...)
 void LOGW(const char* pszFormat, ...)
 //-----------------------------------------------------------------------------
 {
-    va_list args;
+poop    va_list args;
     va_start(args, pszFormat);
     LOG_(FOREGROUND_BLUE | FOREGROUND_GREEN, pszFormat, args);
     va_end(args);
@@ -155,4 +161,40 @@ void LOGI(const char* pszFormat, ...)
     va_end(args);
 }
 #endif // defined (OS_WINDOWS)
+
+#if defined (OS_OSX)
+//-----------------------------------------------------------------------------
+void LOGE(const char* pszFormat, ...)
+//-----------------------------------------------------------------------------
+{
+    va_list args;
+    va_start(args, pszFormat);
+    LOG_(pszFormat, args);
+    va_end(args);
+}
+#endif // defined (OS_OSX)
+
+#if defined (OS_OSX)
+//-----------------------------------------------------------------------------
+void LOGW(const char* pszFormat, ...)
+//-----------------------------------------------------------------------------
+{
+    va_list args;
+    va_start(args, pszFormat);
+    LOG_(pszFormat, args);
+    va_end(args);
+}
+#endif // defined (OS_OSX)
+
+#if defined (OS_OSX)
+//-----------------------------------------------------------------------------
+void LOGI(const char* pszFormat, ...)
+//-----------------------------------------------------------------------------
+{
+    va_list args;
+    va_start(args, pszFormat);
+    LOG_(pszFormat, args);
+    va_end(args);
+}
+#endif // defined (OS_OSX)
 

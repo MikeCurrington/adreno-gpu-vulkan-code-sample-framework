@@ -23,7 +23,7 @@ public:
 	BufferObject(BufferObject&&);
 	BufferObject& operator=(BufferObject&&);
 
-    bool Initialize( MemoryManager* pManager, VkDeviceSize size, VkBufferUsageFlags bufferUsageFlags, const void* initialData );
+    bool Initialize( MemoryManager* pManager, size_t size, VkBufferUsageFlags bufferUsageFlags, const void* initialData );
 	bool Initialize(MemoryManager* pManager, size_t size, VkBufferUsageFlags bufferUsageFlags, MemoryManager::MemoryUsage memoryUsage);
 	//bool Initialize(MemoryManager* pManager, VkBufferUsageFlags usageFlags, const AHardwareBuffer_Desc& hardwareBufferDesc, const void* initialData);
     //bool Initialize(MemoryManager* pManagere, VkBufferUsageFlags usageFlags, const AHardwareBuffer* pAHardwareBuffer);

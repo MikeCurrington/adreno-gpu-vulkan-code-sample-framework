@@ -20,6 +20,13 @@ Both Android and Microsoft Windows build targets are supported (some samples may
 - Ninja https://github.com/ninja-build/ninja/releases (or install Cmake from Android Studio and add the cmake bin folder to your PATH - AFTER the CMake path from the step above)
 - Java JDK https://www.oracle.com/java/technologies/javase-downloads.html
 
+### OSX
+
+- Command line tools for Xcode
+- CMake (tested against 3.22+) https://cmake.org/download/
+- Git https://git-scm.com/downloads
+- Vulkan SDK (1.2 or later) https://vulkan.lunarg.com/
+
 ## Build Setup
 
 ### Windows
@@ -43,11 +50,15 @@ In the root folder there is a batch file for building each platform
 
 `02_BuildWindows.bat`
 
+`03_BuildOSX.sh`
+
 Android uses Gradle and CMake to build an Android .apk for each sample.
 
 Windows uses CMake to build a Visual Studio solution that is then built using Visual Studio (and can then be opened in the Visual Studio IDE).  An .exe is output for each sample.
 
 The Windows Visual Studio file is written to `project\windows\solution\vkSampleFramework.sln`.  Once created for the first time it can be opened and used in Visual Studio 2019 (VS2019 has full support for editing CMakeLists.txt).  When using VS2019 to compile and run, be sure to point the debugger to the correct 'Working Directory' for each sample.
+
+OSX uses CMake to build a Makefile that is then built using 'make'.  An executable is output for each sample.
 
 ## Running
 

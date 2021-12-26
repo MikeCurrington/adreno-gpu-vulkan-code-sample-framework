@@ -100,7 +100,7 @@ if(WIN32)
                 code/gui/windows/imguiWindows.cpp
                 code/system/windows/windowsAssetManager.cpp
     )
-else()
+elseif(ANDROID)
     set(CPP_SRC ${CPP_SRC}
                 code/main/android/androidMain.cpp
                 code/memory/androidHardwareBuffer.cpp
@@ -109,6 +109,11 @@ else()
                 code/system/android/androidAssetManager.cpp
     )
     include_directories( ${ANDROID_NDK}/sources/android/native_app_glue/ )
+elseif(APPLE)
+    set(CPP_SRC ${CPP_SRC}
+                code/main/osx/osxMain.cpp
+                code/system/osx/osxAssetManager.cpp
+    )
 endif()
 
 # Any externals we need to compile as part of framework here
@@ -171,6 +176,16 @@ endif()
 
 if(WIN32)
     target_compile_definitions(framework PRIVATE OS_WINDOWS;_CRT_SECURE_NO_WARNINGS)
+endif()
+
+if(APPLE)
+    target_compile_options(framework PRIVATE -Wno-nullability-completeness)
+    target_compile_definitions(framework PRIVATE OS_OSX;VK_USE_PLATFORM_METAL_EXT)
+
+    add_subdirectory(external/glfw)
+    include_directories(external/glfw/include)
+
+    target_link_libraries(framework glfw)
 endif()
 
 if (${CMAKE_VERSION} VERSION_GREATER_EQUAL "3.8")

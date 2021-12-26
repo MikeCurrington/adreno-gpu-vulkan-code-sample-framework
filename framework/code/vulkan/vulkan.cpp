@@ -6,6 +6,9 @@
 #include <cassert>
 #include <map>
 #include <algorithm>
+#if defined (OS_OSX)
+#include "glfw/glfw3.h"
+#endif
 
 // TODO: Where should these functions pointers be declared if they are needed in another file?
 // Functions whose pointers are in the instance
@@ -118,6 +121,7 @@ Vulkan::Vulkan()
     m_ExtRenderPassShaderResolveAvailable = false;
     m_ExtRenderPassTransformLegacy = false;
     m_ExtRenderPassTransformEnabled = false;
+    m_ExtPortabilitySubset = false;
 #if defined (OS_ANDROID)
     m_ExtExternMemoryCapsAvailable = false;
     m_ExtAndroidExternalMemoryAvailable = false;
@@ -178,7 +182,9 @@ bool Vulkan::Init(uintptr_t windowHandle, uintptr_t hInst, int iDesiredMSAA, con
     m_hInstance = (HINSTANCE)hInst;
 #elif defined (OS_ANDROID)
     m_pAndroidWindow = (ANativeWindow*)windowHandle;
-#endif // defined (OS_WINDOWS|OS_ANDROID)
+#elif defined (OS_OSX)
+    m_pOSXWindow = (void*)windowHandle;
+#endif // defined (OS_WINDOWS|OS_ANDROID|OS_OSX)
 
     if (CustomConfigurationFn)
         CustomConfigurationFn( m_ConfigOverride );
@@ -898,7 +904,6 @@ void Vulkan::InitInstanceExtensions()
                     m_ExtExternMemoryCapsAvailable = true;
                 }
 #endif // defined (OS_ANDROID)
-
             }
         }
     }
@@ -958,6 +963,9 @@ void Vulkan::InitInstanceExtensions()
     }
 #endif // defined (OS_ANDROID)
 
+#if defined (OS_OSX)
+    m_pInstanceExtensionNames[m_NumInstanceExtensions++] = (char*)"VK_EXT_metal_surface";
+#endif // defined (OS_OSX)
 }
 
 //-----------------------------------------------------------------------------
@@ -1119,6 +1127,10 @@ void Vulkan::InitDeviceExtensions()
                 {
                     m_ExtRenderPassShaderResolveAvailable = true;
                 }
+                else if (!strcmp("VK_KHR_portability_subset", pOneItem->extensionName))
+                {
+                    m_ExtPortabilitySubset = true;
+                }
 #if defined (OS_ANDROID)
                 else if (!strcmp(VK_ANDROID_EXTERNAL_MEMORY_ANDROID_HARDWARE_BUFFER_EXTENSION_NAME, pOneItem->extensionName))
                 {
@@ -1171,6 +1183,11 @@ void Vulkan::InitDeviceExtensions()
     if (m_ExtRenderPassShaderResolveAvailable)
     {
         m_pDeviceExtensionNames[m_NumDeviceExtensions++] = (char*)"VK_QCOM_render_pass_shader_resolve";
+    }
+    // This extension allows us to add debug markers to Vulkan objects
+    if (m_ExtPortabilitySubset)
+    {
+        m_pDeviceExtensionNames[m_NumDeviceExtensions++] = (char*)"VK_KHR_portability_subset";
     }
 
 #if defined (OS_ANDROID)
@@ -1612,6 +1629,13 @@ bool Vulkan::InitSurface()
     SurfaceInfoStruct.window = m_pAndroidWindow;
     RetVal = vkCreateAndroidSurfaceKHR(m_VulkanInstance, &SurfaceInfoStruct, NULL, &m_VulkanSurface);
 
+#elif defined (OS_OSX)
+
+    glfwCreateWindowSurface(m_VulkanInstance, (GLFWwindow*)m_pOSXWindow, NULL, &m_VulkanSurface);
+    //VkMetalSurfaceCreateInfoEXT SurfaceCreateInfo {VK_STRUCTURE_TYPE_METAL_SURFACE_CREATE_INFO_EXT};
+    //SurfaceCreateInfo.pLayer = glfwCreateWindowSurface;
+    //RetVal = vkCreateMetalSurfaceEXT(m_VulkanInstance, &SurfaceCreateInfo, NULL, &m_VulkanSurface);
+
 #endif // defined (OS_WINDOWS|OS_ANDROID)
 
     if (!CheckVkError("vkCreateXXXXSurfaceKHR()", RetVal))
@@ -1672,13 +1696,16 @@ bool Vulkan::InitSurface()
     // If we didn't find either queue or they are not the same then we have a problem!
     if (GraphicsIndx == -1 || PresentIndx == -1 || GraphicsIndx != PresentIndx)
     {
-        LOGE("Unable to find a queue that supports both graphics and present!");
-        return false;
+        LOGW("Unable to find a queue that supports both graphics and present!");
+        if (GraphicsIndx == -1)
+        {
+            LOGE("Unable to find a queue that supports both graphics!");
+            return false;
+        }
     }
 
     // We now have the queue we can use
     m_VulkanGraphicsQueueIndx = GraphicsIndx;
-
 
     return true;
 }
@@ -1823,7 +1850,6 @@ bool Vulkan::InitDevice()
         }
     }
 
-#if defined (OS_WINDOWS)
     fpCreateSwapchainKHR = (PFN_vkCreateSwapchainKHR)fpGetDeviceProcAddr(m_VulkanDevice, "vkCreateSwapchainKHR");
     if (fpCreateSwapchainKHR == NULL)
     {
@@ -1853,7 +1879,6 @@ bool Vulkan::InitDevice()
     {
         LOGE("Unable to get function pointer from instance: vkQueuePresentKHR");
     }
-#endif // defined (OS_WINDOWS)
 
 #if defined (USES_VULKAN_DEBUG_LAYERS)
     fnDebugMarkerSetObjectName= (PFN_vkDebugMarkerSetObjectNameEXT)vkGetInstanceProcAddr(m_VulkanInstance, "vkDebugMarkerSetObjectNameEXT");
@@ -1891,7 +1916,9 @@ bool Vulkan::InitDevice()
     RetVal = fpGetPhysicalDeviceSurfaceFormatsKHR(m_VulkanGpu, m_VulkanSurface, &NumFormats, NULL);
 #elif defined (OS_ANDROID)
     RetVal = vkGetPhysicalDeviceSurfaceFormatsKHR(m_VulkanGpu, m_VulkanSurface, &NumFormats, NULL);
-#endif // defined (OS_WINDOWS|OS_ANDROID)
+#elif defined (OS_OSX)
+    RetVal = vkGetPhysicalDeviceSurfaceFormatsKHR(m_VulkanGpu, m_VulkanSurface, &NumFormats, NULL);
+#endif // defined (OS_WINDOWS|OS_ANDROID|OS_OSX)
     if (!CheckVkError("vkGetPhysicalDeviceSurfaceFormatsKHR()", RetVal))
     {
         return false;
@@ -1909,7 +1936,9 @@ bool Vulkan::InitDevice()
         RetVal = fpGetPhysicalDeviceSurfaceFormatsKHR(m_VulkanGpu, m_VulkanSurface, &NumFormats, m_SurfaceFormats.data());
 #elif defined (OS_ANDROID)
         RetVal = vkGetPhysicalDeviceSurfaceFormatsKHR(m_VulkanGpu, m_VulkanSurface, &NumFormats, m_SurfaceFormats.data());
-#endif // defined (OS_WINDOWS|OS_ANDROID)
+#elif defined (OS_OSX)
+        RetVal = vkGetPhysicalDeviceSurfaceFormatsKHR(m_VulkanGpu, m_VulkanSurface, &NumFormats, m_SurfaceFormats.data());
+#endif // defined (OS_WINDOWS|OS_OSX)
         if (!CheckVkError("vkGetPhysicalDeviceSurfaceFormatsKHR()", RetVal))
         {
             return false;
@@ -2252,13 +2281,13 @@ bool Vulkan::InitSwapChain()
         LOGE("You will have all sorts of problems!");
         LOGE("****************************************");
         assert(0);
+        return false;
     }
 
     if ((m_VulkanSurfaceCaps.maxImageCount > 0) && (DesiredSwapchainImages > m_VulkanSurfaceCaps.maxImageCount))
     {
         LOGE("****************************************");
         LOGE("We desired %d swapchain images but surface limits us to %d!", DesiredSwapchainImages, m_VulkanSurfaceCaps.maxImageCount);
-        LOGE("You will have all sorts of problems!");
         LOGE("****************************************");
         DesiredSwapchainImages = m_VulkanSurfaceCaps.maxImageCount;
     }
@@ -2327,21 +2356,21 @@ bool Vulkan::InitSwapChain()
     SwapchainInfo.oldSwapchain = 0;
 
     LOGI("Trying to get %d swapchain images...", DesiredSwapchainImages);
-#if defined (OS_WINDOWS)
-    RetVal = fpCreateSwapchainKHR(m_VulkanDevice, &SwapchainInfo, NULL, &m_VulkanSwapchain);
-#elif defined (OS_ANDROID)
+#if defined (OS_ANDROID)
     RetVal = vkCreateSwapchainKHR(m_VulkanDevice, &SwapchainInfo, NULL, &m_VulkanSwapchain);
-#endif // defined (OS_WINDOWS|OS_ANDROID)
+#else
+    RetVal = fpCreateSwapchainKHR(m_VulkanDevice, &SwapchainInfo, NULL, &m_VulkanSwapchain);
+#endif // defined (OS_ANDROID)
     if (!CheckVkError("vkCreateSwapchainKHR()", RetVal))
     {
         return false;
     }
 
-#if defined (OS_WINDOWS)
-    RetVal = fpGetSwapchainImagesKHR(m_VulkanDevice, m_VulkanSwapchain, &m_SwapchainImageCount, NULL);
-#elif defined (OS_ANDROID)
+#if defined (OS_ANDROID)
     RetVal = vkGetSwapchainImagesKHR(m_VulkanDevice, m_VulkanSwapchain, &m_SwapchainImageCount, NULL);
-#endif // defined (OS_WINDOWS|OS_ANDROID)
+#else
+    RetVal = fpGetSwapchainImagesKHR(m_VulkanDevice, m_VulkanSwapchain, &m_SwapchainImageCount, NULL);
+#endif // defined (OS_ANDROID)
     if (!CheckVkError("vkGetSwapchainImagesKHR(NULL)", RetVal))
     {
         return false;
@@ -2378,10 +2407,10 @@ bool Vulkan::InitSwapChain()
     std::vector<VkImage> swapchainImages;
     swapchainImages.resize(m_SwapchainImageCount);
 
-#if defined (OS_WINDOWS)
-    RetVal = fpGetSwapchainImagesKHR(m_VulkanDevice, m_VulkanSwapchain, &m_SwapchainImageCount, swapchainImages.data());
-#elif defined (OS_ANDROID)
+#if defined (OS_ANDROID)
     RetVal = vkGetSwapchainImagesKHR(m_VulkanDevice, m_VulkanSwapchain, &m_SwapchainImageCount, swapchainImages.data());
+#else
+    RetVal = fpGetSwapchainImagesKHR(m_VulkanDevice, m_VulkanSwapchain, &m_SwapchainImageCount, swapchainImages.data());
 #endif // defined (OS_WINDOWS|OS_ANDROID)
     if (!CheckVkError("vkGetSwapchainImagesKHR()", RetVal))
     {

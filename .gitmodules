@@ -24,3 +24,8 @@
 [submodule "framework/external/span"]
 	path = framework/external/span
 	url = https://github.com/tcbrindle/span
+[submodule "framework/external/glfw"]
+	path = framework/external/glfw
+	url = https://github.com/glfw/glfw
+[submodule "glfw"]
+	branch = 3.3-stable

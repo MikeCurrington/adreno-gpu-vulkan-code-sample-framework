@@ -309,8 +309,10 @@ private:
     HINSTANCE               m_hInstance;
     HWND                    m_hWnd;
 #elif defined(OS_ANDROID)
-    ANativeWindow*           m_pAndroidWindow;
-#endif // defined(OS_WINDOWS)
+    ANativeWindow*          m_pAndroidWindow;
+#elif defined(OS_OSX)
+    void*                   m_pOSXWindow;
+#endif // defined(OS_WINDOWS|OS_ANDROID|OS_OSX)
 
     /// App driven configuration overrides (setup by app before Vulkan is initialized in order to potentially override default Vulkan configuration settings)
     AppConfiguration        m_ConfigOverride;
@@ -363,6 +365,7 @@ private:
     bool                                m_ExtRenderPassTransformEnabled;    // Set when the device is using the renderpasstransform extension (ie display pre-rotation is happening and m_ExtRenderPassTransformAvailable)
     bool                                m_ExtRenderPassTransformLegacy;     // Use the 'legacy' interface to VK_QCOM_render_pass_transform (older drivers)
     bool                                m_ExtRenderPassShaderResolveAvailable;
+    bool                                m_ExtPortabilitySubset;
 
 #if defined (OS_ANDROID)
     bool                                m_ExtExternMemoryCapsAvailable;

@@ -38,11 +38,11 @@ extern const char* gpAndroidAppShortName;
 
 #endif // OS_ANDROID
 
-#ifdef OS_WINDOWS
+#ifndef OS_ANDROID
 void LOGI(const char* pszFormat, ...);
 void LOGW(const char* pszFormat, ...);
 void LOGE(const char* pszFormat, ...);
-#endif // OS_WINDOWS
+#endif // !OS_ANDROID
 
 #if OS_ANDROID
 // For now, put a define here to use Android Hardware Buffers (helps transition to AHB)
