@@ -17,12 +17,19 @@
 #include "main/applicationEntrypoint.hpp"
 #include "gui/gui.hpp"
 
+// Globals
+static std::unique_ptr<FrameworkApplicationBase> gpApplication;
+
+// Forward declarations
+static void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods);
+
+
 int main(int argc, const char*argv[])
 {
     const char* pAppName = "vkSampleFramework";
 
     // Create the application
-    std::unique_ptr<FrameworkApplicationBase> gpApplication( Application_ConstructApplication() );
+    gpApplication.reset( Application_ConstructApplication() );
 
     // Load the config file
     // Need this here in order to get the window sizes
@@ -54,8 +61,8 @@ int main(int argc, const char*argv[])
     if (!gpApplication->GetVulkan()->Init( (uintptr_t)pWindow,
                                            (uintptr_t)0,
                                            iDesiredMSAA,
-                                           [&gpApplication](tcb::span<const VkSurfaceFormatKHR> x) { return gpApplication->PreInitializeSelectSurfaceFormat(x); },
-                                           [&gpApplication](Vulkan::AppConfiguration& x) { return gpApplication->PreInitializeSetVulkanConfiguration(x); }))
+                                           [](tcb::span<const VkSurfaceFormatKHR> x) { return gpApplication->PreInitializeSelectSurfaceFormat(x); },
+                                           [](Vulkan::AppConfiguration& x) { return gpApplication->PreInitializeSetVulkanConfiguration(x); }))
     {
         LOGE("Unable to initialize Vulkan!!");
         return -1;
@@ -67,22 +74,44 @@ int main(int argc, const char*argv[])
         return -1;
     }
 
+    glfwSetKeyCallback(pWindow, KeyCallback);
 
     glfwMakeContextCurrent(pWindow);
     while(!glfwWindowShouldClose(pWindow)){
-        //glfwSwapBuffers(pWindow);
+        if (gpApplication)
+        {
+            gpApplication->Render();
+        }
+        glfwSwapBuffers(pWindow);
         glfwPollEvents();
     }
-    glfwTerminate();
 
     // Release the application
-    if (gpApplication)
-    {
-        gpApplication->Destroy();
-        // gpApplication->DestroyVulkanWindow();
+    gpApplication->Destroy();
+    gpApplication.reset();
 
-        gpApplication.reset();
-    }
+    // Shudown glfw
+    glfwDestroyWindow(pWindow);
+    pWindow = nullptr;
+    glfwTerminate();
 
     return 0;
 }
+
+// GLFW keyboard input callback
+static void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods)
+{
+    switch(action) {
+        case GLFW_PRESS:
+            gpApplication->KeyDownEvent(key);
+            break;
+        case GLFW_REPEAT:
+            gpApplication->KeyRepeatEvent(key);
+            break;
+        case GLFW_RELEASE:
+        default:
+            gpApplication->KeyUpEvent(key);
+            break;
+    }
+}
+

@@ -86,6 +86,6 @@ std::string AssetManager::PortableFilenameToDevicePath(const std::string& portab
 {
     std::string output;
     output.reserve(portableFileName.length());
-    std::transform(portableFileName.begin(), portableFileName.end(), std::back_inserter(output), [](char c) { return c == '/' ? '\\' : c; });
+    std::transform(portableFileName.begin(), portableFileName.end(), std::back_inserter(output), [](char c) { return c == '\\' ? '/' : c; });
     return output;
 }

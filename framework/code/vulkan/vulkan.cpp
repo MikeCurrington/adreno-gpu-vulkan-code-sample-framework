@@ -7,7 +7,7 @@
 #include <map>
 #include <algorithm>
 #if defined (OS_OSX)
-#include "glfw/glfw3.h"
+#include "GLFW/glfw3.h"
 #endif
 
 // TODO: Where should these functions pointers be declared if they are needed in another file?

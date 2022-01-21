@@ -54,7 +54,6 @@ FrameworkApplicationBase::FrameworkApplicationBase()
 FrameworkApplicationBase::~FrameworkApplicationBase()
 //-----------------------------------------------------------------------------
 {
-    // TODO: Does m_vulkan need any cleanup?
 }
 
 //-----------------------------------------------------------------------------
